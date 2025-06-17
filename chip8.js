@@ -1,5 +1,7 @@
-let mem = new Uint8Array(4096)
+// define memory
+let mem = new Uint8Array(4096);
 
+// define font to be used by apps
 let font = new Uint8Array([
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -17,4 +19,11 @@ let font = new Uint8Array([
   0xE0, 0x90, 0x90, 0x90, 0xE0, // D
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-])
+]);
+
+// write font to memory on boot
+let memAddr = 0x50;
+for (let i = 0; i < font.length; i++) {
+  mem[memAddr] = font[i];
+  memAddr++;
+}
