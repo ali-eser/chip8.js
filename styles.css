@@ -1,0 +1,13 @@
+#viewport {
+    display: grid;
+    grid-template-columns: repeat(64, 1fr);
+    grid-template-rows: repeat(32, 1fr);
+    width: 640px;
+    height: 320px;
+}
+
+.pixel {
+    background-color: black;
+    width: 10px;
+    height: 10px;
+}
