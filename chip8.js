@@ -1,8 +1,9 @@
 // define memory
 let mem = new Uint8Array(4096);
 
-let indexRegister;
+let I;
 let PC = 0x200;
+let V;
 
 // define 32 bytes of stack
 let stack = new Uint16Array(16);
@@ -19,6 +20,15 @@ setInterval(function() {
     soundTimer--;
   }
 }, 1000/60);
+
+// create a 64x32 display and append to the viewport element
+const viewport = document.querySelector("#viewport");
+for (let i = 0; i < 2048; i++) {
+  let pixel = document.createElement("div");
+  pixel.className = "pixel";
+  pixel.id = "px-" + i;
+  viewport.append(pixel);
+}
 
 // define font to be used by apps
 const font = new Uint8Array([
@@ -45,13 +55,4 @@ let memAddr = 0x50;
 for (let i = 0; i < font.length; i++) {
   mem[memAddr] = font[i];
   memAddr++;
-}
-
-// create a 64x32 display and append to the viewport element
-const viewport = document.querySelector("#viewport");
-for (let i = 0; i < 2048; i++) {
-  let pixel = document.createElement("div");
-  pixel.className = "pixel";
-  pixel.id = "px-" + i;
-  viewport.append(pixel);
 }
