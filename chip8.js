@@ -1,6 +1,25 @@
 // define memory
 let mem = new Uint8Array(4096);
 
+let indexRegister;
+let PC = 0x200;
+
+// define 32 bytes of stack
+let stack = new Uint16Array(16);
+
+// implement timer logic
+let delayTimer = 0;
+let soundTimer = 0;
+
+setInterval(function() {
+  if (delayTimer > 0) {
+    delayTimer--;
+  }
+  if (soundTimer > 0) {
+    soundTimer--;
+  }
+}, 1000/60);
+
 // define font to be used by apps
 const font = new Uint8Array([
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
