@@ -31,7 +31,7 @@ for (let i = 0; i < 2048; i++) {
 }
 
 // define font to be used by apps
-const font = new Uint8Array([
+const FONT = new Uint8Array([
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
   0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -52,7 +52,28 @@ const font = new Uint8Array([
 
 // write font to memory on boot
 let memAddr = 0x50;
-for (let i = 0; i < font.length; i++) {
-  mem[memAddr] = font[i];
+for (let i = 0; i < FONT.length; i++) {
+  mem[memAddr] = FONT[i];
   memAddr++;
 }
+
+document.querySelector("#run-file").addEventListener("click", function() {
+  const reader = new FileReader();
+  let file = document.querySelector("#rom").files[0];
+
+  if (!file) {
+    console.log("No ROM loaded!");
+    alert("Load a CHIP-8 ROM first!");
+    return;
+  }
+
+  reader.onload = function(event) {
+    console.log(event.target.result);
+  }
+
+  reader.onerror = function(error) {
+    console.log("error: ", error.type);
+  }
+
+  reader.readAsArrayBuffer(file);
+});
