@@ -13,12 +13,7 @@ let I;
 
 let PC = 0x200;
 
-let vReg = {
-  0x0: 0, 0x1: 0, 0x2: 0, 0x3: 0,
-  0x4: 0, 0x5: 0, 0x6: 0, 0x7: 0,
-  0x8: 0, 0x9: 0, 0xA: 0, 0xB: 0,
-  0xC: 0, 0xD: 0, 0xE: 0, 0xF: 0
-};
+let vReg = new Uint8Array(16);
 
 // define 32 bytes of stack
 let stack = new Array;
@@ -129,17 +124,17 @@ const decode = (opcode) => {
       break;
     case 0x0003:
       if (vReg[(opcode & 0x0F00) >> 8] === (opcode & 0x00FF)) {
-        PC = PC + 2;
+        PC += 2;
       }
       break;
     case 0x0004:
       if (vReg[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF)) {
-        PC = PC + 2;
+        PC += 2;
       }
       break;
     case 0x0005:
       if (vReg[(opcode & 0x0F00) >> 8] === vReg[(opcode & 0x00F0) >> 4]) {
-        PC = PC + 2;
+        PC += 2;
       }
       break;
     case 0x0006:
@@ -147,8 +142,8 @@ const decode = (opcode) => {
       //console.log(`${vReg[(opcode & 0x0F00) >> 8]} set to ${opcode & 0x00FF}`);
       break;
     case 0x0007:
-      vReg[(opcode & 0x0F00) >> 8] += (opcode & 0x00FF);
-      //console.log(`added ${opcode & 0x00FF} to ${vReg[(opcode & 0x0F00) >> 8]}`);
+      console.log(opcode.toString(16).toUpperCase());
+      vReg[(opcode & 0x0F00) >> 8] += opcode & 0x00FF;
       break;
     case 0x0008:
       switch (opcode & 0x000F) {
@@ -193,7 +188,7 @@ const decode = (opcode) => {
           vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4] - vReg[(opcode & 0x0F00) >> 8];
           break;
         case 0x000E:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
+          //vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
           vReg[(opcode & 0x0F00) >> 8] <<= 1;
           break;
       }
@@ -207,7 +202,7 @@ const decode = (opcode) => {
       //console.log("set I to ", I);
       break;
     case 0x000B:
-      /* IMPLEMENT THIS */
+      PC = (opcode & 0x0FFF) + vReg[0x0];
       break;
     case 0x000C:
       let randint = Math.floor(Math.random() * (opcode & 0x00FF));
