@@ -105,27 +105,27 @@ const decode = (opcode) => {
   switch ((opcode & 0xF000) >> 12) {
     case 0x0000:
       switch (opcode & 0x00FF) {
-        case 224:
+        case 0x00E0:
           const px = document.querySelectorAll(".px");
           px.forEach((p) => {
-            p.style.backgroundColor = "#000000";
+            p.style.backgroundColor = "rgb(0, 0, 0)";
           });
-          console.log("cleared screen");
+          //console.log("cleared screen");
           break;
-        case 238:
+        case 0x00EE:
           PC = stack.pop();
           break;
       }
       break;
     case 0x0001:
       PC = opcode & 0x0FFF;
-      console.log("PC set to: ", PC);
+      //console.log("PC set to: ", PC);
       break;
     case 0x0002:
       stack.push(PC);
-      console.log("pushed to stack: ", PC);
+      //console.log("pushed to stack: ", PC);
       PC = opcode & 0x0FFF;
-      console.log("PC set to: ", PC);
+      //console.log("PC set to: ", PC);
       break;
     case 0x0003:
       if (vReg[(opcode & 0x0F00) >> 8] === (opcode & 0x00FF)) {
@@ -142,18 +142,13 @@ const decode = (opcode) => {
         PC = PC + 2;
       }
       break;
-    case 0x0009:
-      if (vReg[(opcode & 0x0F00) >> 8] != vReg[(opcode & 0x00F0) >> 4]) {
-        PC = PC + 2;
-      }
-      break;
     case 0x0006:
       vReg[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
-      console.log(`${vReg[(opcode & 0x0F00) >> 8]} set to ${opcode & 0x00FF}`);
+      //console.log(`${vReg[(opcode & 0x0F00) >> 8]} set to ${opcode & 0x00FF}`);
       break;
     case 0x0007:
-      vReg[(opcode & 0x0F00) >> 8] += opcode & 0x00FF;
-      console.log(`added ${opcode & 0x00FF} to ${vReg[(opcode & 0x0F00) >> 8]}`);
+      vReg[(opcode & 0x0F00) >> 8] += (opcode & 0x00FF);
+      //console.log(`added ${opcode & 0x00FF} to ${vReg[(opcode & 0x0F00) >> 8]}`);
       break;
     case 0x0008:
       switch (opcode & 0x000F) {
@@ -187,7 +182,7 @@ const decode = (opcode) => {
           break;
         case 0x0006:
           vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
-          vReg[(opcode & 0x0F00) >> 8] > 1;
+          vReg[(opcode & 0x0F00) >> 8] >>= 1;
           break;
         case 0x0007:
           if (vReg[(opcode & 0x00F0) >> 4] > vReg[(opcode & 0x0F00) >> 8]) {
@@ -199,12 +194,17 @@ const decode = (opcode) => {
           break;
         case 0x000E:
           vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
-          vReg[(opcode & 0x0F00) >> 8] < 1;
+          vReg[(opcode & 0x0F00) >> 8] <<= 1;
           break;
       }
+    case 0x0009:
+      if (vReg[(opcode & 0x0F00) >> 8] !== vReg[(opcode & 0x00F0) >> 4]) {
+        PC += 2;
+      }
+      break;
     case 0x000A:
       I = opcode & 0x0FFF;
-      console.log("set I to ", I);
+      //console.log("set I to ", I);
       break;
     case 0x000B:
       /* IMPLEMENT THIS */
@@ -213,6 +213,36 @@ const decode = (opcode) => {
       let randint = Math.floor(Math.random() * (opcode & 0x00FF));
       randint = randint & (opcode & 0x00FF);
       vReg[(opcode & 0x0F00) >> 8] = randint;
+      break;
+    case 0x000D:
+      let x = vReg[(opcode & 0x0F00) >> 8] & 63;
+      let y = vReg[(opcode & 0x00F0) >> 4] & 31;
+      vReg[0xF] = 0;
+      for (let i = 0; i < (opcode & 0x000F); i++) {
+        if (i > 0) {
+          x -= 8; 
+        }
+        if (y > 31) {
+          break;
+        }
+        let sprite = mem[I + i];
+        for (let j = 0; j < 8; j++) {    
+          if (x > 63) {
+            break;
+          }
+          let currPix = (sprite & (1 << 7 - j)) != 0;
+          const scrPixel = document.querySelector(`#x${x}-y${y}`);
+          if (scrPixel.style.backgroundColor === "rgb(255, 255, 255)" && currPix) {
+            scrPixel.style.backgroundColor = "rgb(0, 0, 0)";
+            vReg[0xF] = 1;
+          } else if (scrPixel.style.backgroundColor === "rgb(0, 0, 0)" && currPix) {
+            scrPixel.style.backgroundColor = "rgb(255, 255, 255)";
+            vReg[0xF] = 0;
+          }
+          x++;
+        }
+        y++;
+      }
       break;
   }
 };
