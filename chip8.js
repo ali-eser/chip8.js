@@ -1,3 +1,8 @@
+/* 
+  CHIP-8 Interpreter
+  Copyright 2025 Ali Eser 
+*/
+
 // define memory
 let mem = new Uint8Array(4096);
 
@@ -65,6 +70,15 @@ for (let i = 0; i < 32; i++) {
   }
 }
 
+const body = document.querySelector("body");
+for (let i = 0; i < vReg.length; i++) {
+  const register = document.createElement(`vreg${i}`);
+  register.innerHTML = `vReg${i}: ` + vReg[i];
+  register.style.color = "white";
+  register.className = "register";
+  body.append(register);
+}
+
 // define font to be used by apps
 const FONT = new Uint8Array([
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -117,10 +131,14 @@ document.querySelector("#run-file").addEventListener("click", () => {
 const fetch = () => {
   const opcode = (mem[PC] << 8) | mem[PC + 1];
   PC = PC + 2;
-  decode(opcode);
+  cpu(opcode);
+  for (let i = 0; i < vReg.length; i++) {
+    const register = document.querySelector(`vreg${i}`);
+    register.innerHTML = `vReg${i}: ` + vReg[i];
+  }
 }
 
-const decode = (opcode) => {
+const cpu = (opcode) => {
   switch ((opcode & 0xF000) >> 12) {
     case 0x0000:
       switch (opcode & 0x00FF) {
@@ -148,7 +166,7 @@ const decode = (opcode) => {
       }
       break;
     case 0x0004:
-      if (vReg[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF)) {
+      if (vReg[(opcode & 0x0F00) >> 8] !== (opcode & 0x00FF)) {
         PC += 2;
       }
       break;
@@ -168,48 +186,60 @@ const decode = (opcode) => {
         case 0x0000:
           vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
           break;
-        case 0x0001:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x0F00) >> 8] | vReg[(opcode & 0x00F0) >> 4];
+        case 0x0001: {
+          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
+          vReg[x] |= vReg[y];
           break;
-        case 0x0002:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x0F00) >> 8] & vReg[(opcode & 0x00F0) >> 4];
+        }
+        case 0x0002: {
+          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
+          vReg[x] &= vReg[y];
+          break; 
+        }
+        case 0x0003: {
+          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
+          vReg[x] ^= vReg[y];
           break;
-        case 0x0003:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x0F00) >> 8] ^= vReg[(opcode & 0x00F0) >> 4];
-          break;
-        case 0x0004:
-          if (vReg[(opcode & 0x0F00) >> 8] + vReg[(opcode & 0x00F0) >> 4] > 255) {
+        }
+        case 0x0004: {
+          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
+          const [vx, vy] = [vReg[x], vReg[y]];
+          vReg[x] = (vReg[x] + vReg[y]) & 0xFF;
+          if ((vx + vy) > 255) {
             vReg[0xF] = 1;
-          } else {
+          }
+          break;
+        }
+        case 0x0005: {
+          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
+          const [vx, vy] = [vReg[x], vReg[y]];
+          vReg[x] = (vReg[x] - vReg[y]) & 0xFF;
+          if (vx < vy) {
             vReg[0xF] = 0;
           }
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x0F00) >> 8] + vReg[(opcode & 0x00F0) >> 4];
           break;
-        case 0x0005:
-          const x = (opcode & 0x0F00) >> 8;
-          const y = (opcode & 0x00F0) >> 4;
-          if (vReg[x] > vReg[y]) {
-            vReg[0xF] = 1;
-          } else if (vReg[x] < vReg[y]) {
-            vReg[0xF] = 0;
-          }
-          vReg[x] = vReg[x] - vReg[y];
-          break;
-        case 0x0006:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
+        }
+        case 0x0006: {
+          const bitToBeShifted = vReg[(opcode & 0x0F00) >> 8] & 0x1;
           vReg[(opcode & 0x0F00) >> 8] >>= 1;
+          vReg[0xF] = bitToBeShifted;
           break;
-        case 0x0007:
-          vReg[0xF] = 1;
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4] - vReg[(opcode & 0x0F00) >> 8];
-          if (vReg[(opcode & 0x00F0) >> 4] < vReg[(opcode & 0x0F00) >> 8]) {
+        }
+        case 0x0007: {
+          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
+          const [vx, vy] = [vReg[x], vReg[y]];
+          vReg[x] = vReg[y] - vReg[x];
+          if (vy < vx) {
             vReg[0xF] = 0;
           }
           break;
-        case 0x000E:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
+        }
+        case 0x000E: {
+          const bitToBeShifted = (vReg[(opcode & 0x0F00) >> 8] & 0x80) >> 0x7;
           vReg[(opcode & 0x0F00) >> 8] <<= 1;
+          vReg[0xF] = bitToBeShifted;
           break;
+        }
       }
     case 0x0009:
       if (vReg[(opcode & 0x0F00) >> 8] !== vReg[(opcode & 0x00F0) >> 4]) {
@@ -220,14 +250,15 @@ const decode = (opcode) => {
       I = (opcode & 0x0FFF);
       break;
     case 0x000B:
-      PC = (opcode & 0x0FFF) + vReg[0x0];
+      const addr = opcode & 0x0FFF;
+      PC = addr + vReg[0x0];
       break;
     case 0x000C:
       let randint = Math.floor(Math.random() * (opcode & 0x00FF));
       randint = randint & (opcode & 0x00FF);
       vReg[(opcode & 0x0F00) >> 8] = randint;
       break;
-    case 0x000D:
+    case 0x000D: {
       let y = vReg[(opcode & 0x00F0) >> 4] % 32;
       vReg[0xF] = 0;
       for (let i = 0; i < (opcode & 0x000F); i++) {
@@ -254,10 +285,12 @@ const decode = (opcode) => {
         }
       }
       break;
+    }
     case 0x000E:
       switch (opcode & 0x00FF) {
         case 0x009E:
           if (Object.values(keyLog)[(opcode & 0x0F00) >> 8]) {
+            console.log(Object.values(keyLog)[(opcode & 0x0F00) >> 8])
             PC += 2;
           }
           break;
