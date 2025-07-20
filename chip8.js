@@ -151,17 +151,17 @@ const cpu = (opcode) => {
       PC = opcode & 0x0FFF;
       break;
     case 0x0003:
-      if (vReg[(opcode & 0x0F00) >> 8] === (opcode & 0x00FF)) {
+      if (vReg[x] === (opcode & 0x00FF)) {
         PC += 2;
       }
       break;
     case 0x0004:
-      if (vReg[(opcode & 0x0F00) >> 8] !== (opcode & 0x00FF)) {
+      if (vReg[x] !== (opcode & 0x00FF)) {
         PC += 2;
       }
       break;
     case 0x0005:
-      if (vReg[(opcode & 0x0F00) >> 8] === vReg[(opcode & 0x00F0) >> 4]) {
+      if (vReg[x] === vReg[y]) {
         PC += 2;
       }
       break;
@@ -174,20 +174,17 @@ const cpu = (opcode) => {
     case 0x0008:
       switch (opcode & 0x000F) {
         case 0x0000:
-          vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
+          vReg[x] = vReg[y];
           break;
-        case 0x0001: {
+        case 0x0001:
           vReg[x] = (vReg[x] | vReg[y]) & 0xFF;
           break;
-        }
-        case 0x0002: {
+        case 0x0002:
           vReg[x] = (vReg[x] & vReg[y]) & 0xFF;
           break; 
-        }
-        case 0x0003: {
+        case 0x0003:
           vReg[x] = (vReg[x] ^ vReg[y]) & 0xFF;
           break;
-        }
         case 0x0004: {
           const [vx, vy] = [vReg[x], vReg[y]];
           vReg[x] = (vReg[x] + vReg[y]) & 0xFF;
@@ -233,7 +230,7 @@ const cpu = (opcode) => {
       }
       break;
     case 0x0009:
-      if (vReg[(opcode & 0x0F00) >> 8] !== vReg[(opcode & 0x00F0) >> 4]) {
+      if (vReg[x] !== vReg[y]) {
         PC += 2;
       }
       break;
@@ -245,10 +242,7 @@ const cpu = (opcode) => {
       PC = addr + vReg[0x0];
       break;
     case 0x000C:
-      let randint = Math.floor(Math.random() * (opcode & 0x00FF));
-      randint = randint & (opcode & 0x00FF);
-      console.log("randint: ", randint);
-      vReg[(opcode & 0x0F00) >> 8] = randint & 0xFF;
+      vReg[x] = (((Math.random() * (opcode & 0x00FF)) * 10) & (opcode & 0x00FF)) & 0xFF;
       break;
     case 0x000D: {
       let y = vReg[(opcode & 0x00F0) >> 4] % 32;
@@ -307,7 +301,9 @@ const cpu = (opcode) => {
           I += vReg[(opcode & 0x0F00) >> 8];
           break;
         case 0x000A:
+          console.log(opcode);
           let pressedKey = Object.values(keyLog).indexOf(true);
+          console.log(pressedKey);
           if (pressedKey !== -1) {
             vReg[(opcode & 0x0F00) >> 8] = pressedKey;
             console.log("pressedKey: ", pressedKey);
