@@ -22,7 +22,7 @@ const cleanMemory = () => {
 
 let I;
 let PC = 0x200;
-let vReg = new Uint8Array(16);
+let vReg = new Uint8Array(16).fill(0);
 
 // define 32 bytes of stack
 let stack = new Array;
@@ -41,22 +41,10 @@ setInterval(() => {
 }, 1000/60);
 
 let keyLog = {
-  "KeyX": false, 
-  "Digit1": false, 
-  "Digit2": false, 
-  "Digit3": false,
-  "KeyQ": false, 
-  "KeyW": false, 
-  "KeyE": false, 
-  "KeyA": false,
-  "KeyS": false,
-  "KeyD": false,
-  "KeyZ": false,
-  "KeyC": false, 
-  "Digit4": false,
-  "KeyR": false,
-  "KeyF": false,
-  "KeyV": false
+  "KeyX": false, "Digit1": false, "Digit2": false, "Digit3": false,
+  "KeyQ": false, "KeyW": false, "KeyE": false, "KeyA": false,
+  "KeyS": false, "KeyD": false, "KeyZ": false, "KeyC": false, 
+  "Digit4": false, "KeyR": false, "KeyF": false, "KeyV": false
 };
 
 // create a 64x32 display and append to the viewport element
@@ -66,6 +54,7 @@ for (let i = 0; i < 32; i++) {
     const px = document.createElement("div");
     px.className = "px";
     px.id = "x" + j + "-y" + i;
+    px.style.backgroundColor = "rgb(0, 0, 0)";
     viewport.append(px);
   }
 }
@@ -122,7 +111,7 @@ document.querySelector("#run-file").addEventListener("click", () => {
   };
 
   reader.onerror = (error) => {
-    console.log("error: ", error.type);
+    console.log("error: ", error);
   };
 
   reader.readAsArrayBuffer(file);
@@ -139,6 +128,7 @@ const fetch = () => {
 }
 
 const cpu = (opcode) => {
+  const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
   switch ((opcode & 0xF000) >> 12) {
     case 0x0000:
       switch (opcode & 0x00FF) {
@@ -179,7 +169,7 @@ const cpu = (opcode) => {
       vReg[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
       break;
     case 0x0007:
-      vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x0F00) >> 8] + opcode & 0x00FF;
+      vReg[(opcode & 0x0F00) >> 8] = (vReg[(opcode & 0x0F00) >> 8] + opcode & 0x00FF) & 0xFF;
       break;
     case 0x0008:
       switch (opcode & 0x000F) {
@@ -187,60 +177,61 @@ const cpu = (opcode) => {
           vReg[(opcode & 0x0F00) >> 8] = vReg[(opcode & 0x00F0) >> 4];
           break;
         case 0x0001: {
-          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
-          vReg[x] |= vReg[y];
+          vReg[x] = (vReg[x] | vReg[y]) & 0xFF;
           break;
         }
         case 0x0002: {
-          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
-          vReg[x] &= vReg[y];
+          vReg[x] = (vReg[x] & vReg[y]) & 0xFF;
           break; 
         }
         case 0x0003: {
-          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
-          vReg[x] ^= vReg[y];
+          vReg[x] = (vReg[x] ^ vReg[y]) & 0xFF;
           break;
         }
         case 0x0004: {
-          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
           const [vx, vy] = [vReg[x], vReg[y]];
           vReg[x] = (vReg[x] + vReg[y]) & 0xFF;
-          if ((vx + vy) > 255) {
+          if ((vx + vy) > 0xFF) {
             vReg[0xF] = 1;
+          } else {
+            vReg[0xF] = 0;
           }
           break;
         }
         case 0x0005: {
-          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
           const [vx, vy] = [vReg[x], vReg[y]];
           vReg[x] = (vReg[x] - vReg[y]) & 0xFF;
-          if (vx < vy) {
+          if (vx >= vy) {
+            vReg[0xF] = 1;
+          } else {
             vReg[0xF] = 0;
           }
           break;
         }
         case 0x0006: {
-          const bitToBeShifted = vReg[(opcode & 0x0F00) >> 8] & 0x1;
-          vReg[(opcode & 0x0F00) >> 8] >>= 1;
+          const bitToBeShifted = vReg[y] & 0x1;
+          vReg[x] = (vReg[y] >> 1) & 0xFF;
           vReg[0xF] = bitToBeShifted;
           break;
         }
         case 0x0007: {
-          const [x, y] = [(opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4];
           const [vx, vy] = [vReg[x], vReg[y]];
           vReg[x] = vReg[y] - vReg[x];
-          if (vy < vx) {
+          if (vy >= vx) {
+            vReg[0xF] = 1;
+          } else if (vy < vx) {
             vReg[0xF] = 0;
           }
           break;
         }
         case 0x000E: {
-          const bitToBeShifted = (vReg[(opcode & 0x0F00) >> 8] & 0x80) >> 0x7;
-          vReg[(opcode & 0x0F00) >> 8] <<= 1;
+          const bitToBeShifted = (vReg[y] >> 7) & 0x1;
+          vReg[x] = (vReg[y] << 1) & 0xFF;
           vReg[0xF] = bitToBeShifted;
           break;
         }
       }
+      break;
     case 0x0009:
       if (vReg[(opcode & 0x0F00) >> 8] !== vReg[(opcode & 0x00F0) >> 4]) {
         PC += 2;
@@ -256,22 +247,22 @@ const cpu = (opcode) => {
     case 0x000C:
       let randint = Math.floor(Math.random() * (opcode & 0x00FF));
       randint = randint & (opcode & 0x00FF);
-      vReg[(opcode & 0x0F00) >> 8] = randint;
+      console.log("randint: ", randint);
+      vReg[(opcode & 0x0F00) >> 8] = randint & 0xFF;
       break;
     case 0x000D: {
       let y = vReg[(opcode & 0x00F0) >> 4] % 32;
-      vReg[0xF] = 0;
       for (let i = 0; i < (opcode & 0x000F); i++) {
         let x = vReg[(opcode & 0x0F00) >> 8] % 64;
         let sprite = mem[I + i];
         for (let j = 0; j < 8; j++) {
           let currPix = (sprite & (1 << 7 - j)) != 0;
           const scrPixel = document.querySelector(`#x${x}-y${y}`);
-          if (scrPixel.style.backgroundColor === "rgb(0, 255, 0)" && currPix) {
+          if (scrPixel.style.backgroundColor === "whitesmoke" && currPix) {
             scrPixel.style.backgroundColor = "rgb(0, 0, 0)";
             vReg[0xF] = 1;
           } else if (scrPixel.style.backgroundColor === "rgb(0, 0, 0)" && currPix) {
-            scrPixel.style.backgroundColor = "rgb(0, 255, 0)";
+            scrPixel.style.backgroundColor = "whitesmoke";
             vReg[0xF] = 0;
           }
           x++;
@@ -289,17 +280,18 @@ const cpu = (opcode) => {
     case 0x000E:
       switch (opcode & 0x00FF) {
         case 0x009E:
-          if (Object.values(keyLog)[(opcode & 0x0F00) >> 8]) {
-            console.log(Object.values(keyLog)[(opcode & 0x0F00) >> 8])
+          if (Object.values(keyLog)[x]) {
+            console.log(Object.values(keyLog)[x & 0xF]);
             PC += 2;
           }
           break;
         case 0x00A1:
-          if (!Object.values(keyLog)[(opcode & 0x0F00) >> 8]) {
+          if (!Object.values(keyLog)[x]) {
             PC += 2;
           }
           break;
       }
+      break;
     case 0x000F:
       switch (opcode & 0x00FF) {
         case 0x0007:
@@ -318,12 +310,13 @@ const cpu = (opcode) => {
           let pressedKey = Object.values(keyLog).indexOf(true);
           if (pressedKey !== -1) {
             vReg[(opcode & 0x0F00) >> 8] = pressedKey;
+            console.log("pressedKey: ", pressedKey);
           } else {
             PC -= 2;
           }
           break;
         case 0x0029:
-          I = 0x50 + (((opcode & 0x0F00) >> 8) * 5);
+          I = 0x50 + ((vReg[(opcode & 0x0F00) >> 8] & 0xF) * 5);
           break;
         case 0x0033:
           let i = 100;
@@ -345,18 +338,24 @@ const cpu = (opcode) => {
           }
           break;
       }
+      break;
   }
 };
 
 const watchKeyEvents = () => {
   onkeydown = (e) => {
     if (e.code in keyLog) {
-      keyLog[e.code] = true;
+      if (!keyLog[e.code]) {
+        keyLog[e.code] = true;
+      }
     }
   }
   onkeyup = (e) => {
     if (e.code in keyLog) {
-      keyLog[e.code] = false;
+      if (keyLog[e.code]) {
+        keyLog[e.code] = false;
+      }
+      
     }
   }
 };
