@@ -274,13 +274,12 @@ const cpu = (opcode) => {
     case 0x000E:
       switch (opcode & 0x00FF) {
         case 0x009E:
-          if (Object.values(keyLog)[x]) {
-            console.log(Object.values(keyLog)[x & 0xF]);
+          if (Object.values(keyLog)[vReg[x]]) {
             PC += 2;
           }
           break;
         case 0x00A1:
-          if (!Object.values(keyLog)[x]) {
+          if (!Object.values(keyLog)[vReg[x]]) {
             PC += 2;
           }
           break;
@@ -301,12 +300,9 @@ const cpu = (opcode) => {
           I += vReg[(opcode & 0x0F00) >> 8];
           break;
         case 0x000A:
-          console.log(opcode);
           let pressedKey = Object.values(keyLog).indexOf(true);
-          console.log(pressedKey);
           if (pressedKey !== -1) {
-            vReg[(opcode & 0x0F00) >> 8] = pressedKey;
-            console.log("pressedKey: ", pressedKey);
+            vReg[x] = pressedKey;
           } else {
             PC -= 2;
           }
@@ -341,17 +337,12 @@ const cpu = (opcode) => {
 const watchKeyEvents = () => {
   onkeydown = (e) => {
     if (e.code in keyLog) {
-      if (!keyLog[e.code]) {
-        keyLog[e.code] = true;
-      }
+      keyLog[e.code] = true;
     }
   }
   onkeyup = (e) => {
     if (e.code in keyLog) {
-      if (keyLog[e.code]) {
-        keyLog[e.code] = false;
-      }
-      
+      keyLog[e.code] = false;
     }
   }
 };
