@@ -24,6 +24,8 @@ let I;
 let PC = 0x200;
 let vReg = new Uint8Array(16).fill(0);
 
+let implementation;
+
 // define 32 bytes of stack
 let stack = new Array;
 
@@ -62,7 +64,7 @@ for (let i = 0; i < 32; i++) {
 const body = document.querySelector("body");
 for (let i = 0; i < vReg.length; i++) {
   const register = document.createElement(`vreg${i}`);
-  register.innerHTML = `vReg${i}: ` + vReg[i];
+  register.innerHTML = `V${i.toString(16).toUpperCase()}: ` + vReg[i];
   register.style.color = "white";
   register.className = "register";
   body.append(register);
@@ -96,13 +98,14 @@ document.querySelector("#run-file").addEventListener("click", () => {
   let file = document.querySelector("#rom").files[0];
 
   if (!file) {
-    console.log("No ROM loaded!");
+    console.error("No ROM loaded!");
     alert("Load a CHIP-8 ROM first!");
     return;
   }
 
   reader.onload = (e) => {
     cleanMemory();
+    implementation = document.forms["implementations"].elements["impl"].value;
     writeToMemory(new Uint8Array(e.target.result), 0x200);
     setInterval(() => {
       watchKeyEvents();
@@ -123,7 +126,7 @@ const fetch = () => {
   cpu(opcode);
   for (let i = 0; i < vReg.length; i++) {
     const register = document.querySelector(`vreg${i}`);
-    register.innerHTML = `vReg${i}: ` + vReg[i];
+    register.innerHTML = `V${i.toString(16).toUpperCase()}: ` + vReg[i];
   }
 }
 
@@ -207,7 +210,11 @@ const cpu = (opcode) => {
         }
         case 0x0006: {
           const bitToBeShifted = vReg[y] & 0x1;
-          vReg[x] = (vReg[y] >> 1) & 0xFF;
+          if (implementation === "original") {
+            vReg[x] = (vReg[y] >> 1) & 0xFF;
+          } else if (implementation === "modern") {
+            vReg[x] = vReg[x] >> 1;
+          }
           vReg[0xF] = bitToBeShifted;
           break;
         }
@@ -223,7 +230,11 @@ const cpu = (opcode) => {
         }
         case 0x000E: {
           const bitToBeShifted = (vReg[y] >> 7) & 0x1;
-          vReg[x] = (vReg[y] << 1) & 0xFF;
+          if (implementation === "original") {
+            vReg[x] = (vReg[y] << 1) & 0xFF;
+          } else if (implementation === "modern") {
+            vReg[x] = vReg[x] << 1;
+          }
           vReg[0xF] = bitToBeShifted;
           break;
         }
@@ -239,7 +250,11 @@ const cpu = (opcode) => {
       break;
     case 0x000B:
       const addr = opcode & 0x0FFF;
-      PC = addr + vReg[0x0];
+      if (implementation === "original") {
+        PC = addr + vReg[0x0];
+      } else if (implementation === "modern") {
+        PC = addr + vReg[x];
+      }
       break;
     case 0x000C:
       vReg[x] = (((Math.random() * (opcode & 0x00FF)) * 10) & (opcode & 0x00FF)) & 0xFF;
@@ -252,11 +267,11 @@ const cpu = (opcode) => {
         for (let j = 0; j < 8; j++) {
           let currPix = (sprite & (1 << 7 - j)) != 0;
           const scrPixel = document.querySelector(`#x${x}-y${y}`);
-          if (scrPixel.style.backgroundColor === "whitesmoke" && currPix) {
+          if (scrPixel.style.backgroundColor === "white" && currPix) {
             scrPixel.style.backgroundColor = "rgb(0, 0, 0)";
             vReg[0xF] = 1;
           } else if (scrPixel.style.backgroundColor === "rgb(0, 0, 0)" && currPix) {
-            scrPixel.style.backgroundColor = "whitesmoke";
+            scrPixel.style.backgroundColor = "white";
             vReg[0xF] = 0;
           }
           x++;
@@ -320,13 +335,27 @@ const cpu = (opcode) => {
           }
           break;
         case 0x0055:
-          for (let i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
-            mem[I + i] = vReg[i];
+          if (implementation === "original") {
+            for (let i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
+              mem[I + i] = vReg[i];
+            }
+          } else if (implementation === "modern") {
+            for (let i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
+              mem[I] = vReg[i];
+              I++;
+            }
           }
           break;
         case 0x0065:
-          for (let i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
-            vReg[i] = mem[I + i];
+          if (implementation === "original") {
+            for (let i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
+              vReg[i] = mem[I + i];
+            }
+          } else if (implementation === "modern") {
+            for (let i = 0; i <= ((opcode & 0x0F00) >> 8); i++) {
+              vReg[i] = mem[I];
+              I++;
+            }
           }
           break;
       }
