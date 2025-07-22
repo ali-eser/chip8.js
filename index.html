@@ -8,6 +8,21 @@
     </head>
     <body>
         <input id="rom" type="file">
+        <fieldset>
+            <legend>Select implementation:</legend>
+            <form name="implementations">
+                <div>
+                    <input type="radio" id="modern" name="impl" value="modern" checked>
+                    <label for="modern">Modern</label>
+                </div>
+                <div>
+                    <input type="radio" id="original" name="impl" value="original">
+                    <label for="original">Original</label>
+                </div>
+            </form>
+
+        </fieldset>
+
         <button id="run-file">Run</button>
         <section id="viewport"></section>
         <script type="text/javascript" src="chip8.js"></script>
