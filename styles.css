@@ -19,3 +19,12 @@ input {
     width: 10px;
     height: 10px;
 }
+
+fieldset {
+    color: white;
+}
+
+.register {
+    display: flex;
+    flex-direction: column;
+}
