@@ -14,3 +14,5 @@ Keypad is as follows:
 `A S D F`
 
 `Z X C V`
+
+The frontend in this repository is intended as a proof of concept. The main project is the .js file itself.
